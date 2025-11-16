@@ -11,6 +11,9 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
     
     steps:
     - uses: actions/checkout@v4
@@ -51,7 +54,6 @@ jobs:
         body: |
           Install: `pip install openrouter-free==${{ github.ref_name }}`
         artifacts: "dist/*"
-        generateReleaseNotes: true
         draft: false
         prerelease: false
         token: ${{ secrets.GITHUB_TOKEN }}

@@ -41,3 +41,17 @@ jobs:
       run: |
         pip install twine
         python -m twine upload dist/*
+    
+    - name: Create GitHub Release
+      if: startsWith(github.ref, 'refs/tags/v')
+      uses: ncipollo/create-release@v1
+      with:
+        tag: ${{ github.ref_name }}
+        name: "Release ${{ github.ref_name }}"
+        body: |
+          Install: `pip install openrouter-free==${{ github.ref_name }}`
+        artifacts: "dist/*"
+        generateReleaseNotes: true
+        draft: false
+        prerelease: false
+        token: ${{ secrets.GITHUB_TOKEN }}

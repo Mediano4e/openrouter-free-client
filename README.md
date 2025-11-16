@@ -10,7 +10,18 @@ A Python library for managing multiple free OpenRouter API keys with automatic r
 - **Comprehensive Logging**: Tracks key usage with masked key display for security
 - **Async Support**: Full async/await support for high-performance applications
 - **Error Handling**: Robust error handling with custom exceptions
-- **Pre-configured Models**: Includes configurations for popular models
+- **Pre-configured Models**: Includes configurations for popular free models
+
+## Supported Models
+
+The library includes pre-configured free models from OpenRouter:
+
+| Model Key | Full Model Name | Context Length | Max Output |
+|-----------|----------------|----------------|------------|
+| `gpt-oss-20b` | `openai/gpt-oss-20b:free` | 137,072 | 137,072 |
+| `deepseek-chat-v3.1` | `deepseek/deepseek-chat-v3.1:free` | 163,800 | 163,800 |
+| `deepseek-r1t2-chimera` | `tngtech/deepseek-r1t2-chimera:free` | 163,840 | 163,840 |
+
 
 ## Installation
 
@@ -40,11 +51,11 @@ pip install openrouter-free[all]
 
 ```python
 import asyncio
-from openrouter_free import FreeOpenRouterClient, ModelInfo
+from openrouter_free import FreeOpenRouterClient, MODELS
 
 # Initialize client with multiple API keys
 client = FreeOpenRouterClient(
-    model="openai/gpt-4o-mini",
+    model=MODELS["gpt-oss-20b"],
     api_keys=[
         "sk-or-v1-key1...",
         "sk-or-v1-key2...",
@@ -72,7 +83,7 @@ from openrouter_free import FreeOpenRouterClient, MODELS
 
 # Use predefined model configuration
 client = FreeOpenRouterClient(
-    model=MODELS["gpt-4o-mini"],
+    model=MODELS["gpt-oss-20b"],
     api_keys=["key1", "key2", "key3"]
 )
 ```
@@ -95,7 +106,7 @@ from openrouter_free import LlamaORFAdapter, MODELS
 
 # Create LlamaIndex-compatible LLM
 llm = LlamaORFAdapter(
-    model=MODELS["gpt-4o-mini"],
+    model=MODELS["gpt-oss-20b"],
     api_keys=["key1", "key2", "key3"],
     temperature=0.7,
     max_tokens=2000
@@ -117,12 +128,12 @@ for chunk in llm.stream_chat([
 ## LangChain Integration
 
 ```python
-from openrouter_free import LangChainORFAdapter
+from openrouter_free import LangChainORFAdapter, MODELS
 from langchain_core.messages import HumanMessage
 
 # Create LangChain-compatible chat model
 chat = LangChainORFAdapter(
-    model="openai/gpt-4o-mini",
+    model=MODELS["gpt-oss-20b"],
     api_keys=["key1", "key2", "key3"],
     temperature=0.7
 )
@@ -236,7 +247,7 @@ async def main():
     
     # Initialize client
     client = FreeOpenRouterClient(
-        model=MODELS["gpt-4o-mini"],
+        model=MODELS["gpt-oss-20b"],
         api_keys=[k for k in keys if k],  # Filter out None values
         max_retries=3
     )

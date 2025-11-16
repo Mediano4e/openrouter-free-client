@@ -18,7 +18,7 @@ def basic_llama_example():
     """Basic LlamaIndex usage."""
     # Initialize adapter with multiple keys
     llm = LlamaORFAdapter(
-        model=MODELS["gpt-4o-mini"],
+        model=MODELS["gpt-oss-20b"],
         api_keys=[
             os.getenv("OPENROUTER_KEY_1", "your-key-1"),
             os.getenv("OPENROUTER_KEY_2", "your-key-2"),
@@ -40,7 +40,7 @@ def basic_llama_example():
 def streaming_llama_example():
     """Streaming with LlamaIndex."""
     llm = LlamaORFAdapter(
-        model="openai/gpt-3.5-turbo",
+        model=MODELS["deepseek-chat-v3.1"],
         api_keys=["key1", "key2"],
         temperature=0.8
     )
@@ -82,7 +82,7 @@ def rag_example():
     """RAG (Retrieval-Augmented Generation) example."""
     # Initialize LLM
     llm = LlamaORFAdapter(
-        model=MODELS["gpt-4o-mini"],
+        model=MODELS["gpt-oss-20b"],
         api_keys=["key1", "key2"],
         temperature=0.5
     )

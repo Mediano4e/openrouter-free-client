@@ -81,7 +81,7 @@ def chain_example():
     """Example using LangChain chains."""
     # Initialize chat model
     chat = LangChainORFAdapter(
-        model=MODELS["gpt-4o-mini"],
+        model=MODELS["gpt-oss-20b"],
         api_keys=["key1", "key2"],
         temperature=0.5
     )
@@ -108,7 +108,7 @@ def conversation_example():
     """Example with conversation memory."""
     # Initialize chat model
     chat = LangChainORFAdapter(
-        model="openai/gpt-3.5-turbo",
+        model=MODELS["deepseek-chat-v3.1"],
         api_keys=["key1", "key2"],
         temperature=0.7
     )
@@ -148,7 +148,7 @@ def conversation_example():
 def batch_processing_example():
     """Example of batch processing."""
     chat = LangChainORFAdapter(
-        model=MODELS["gpt-4o-mini"],
+        model=MODELS["gpt-oss-20b"],
         api_keys=["key1", "key2", "key3"],
         temperature=0.5
     )

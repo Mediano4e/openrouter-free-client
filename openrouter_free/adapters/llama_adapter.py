@@ -1,6 +1,8 @@
-from loguru import logger
-from typing import Any, Dict, List, Optional, Sequence, Generator
 import asyncio
+
+from typing import Any, Dict, List, Optional, Sequence, Generator
+
+from loguru import logger
 
 try:
     from llama_index.core.base.llms.base import BaseLLM

@@ -1,28 +1,19 @@
-from typing import List, Optional, Dict, AsyncIterator
-import asyncio
-from dataclasses import dataclass
 import httpx
+import asyncio
+
+from typing import List, Optional, Dict, AsyncIterator
+
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletion, ChatCompletionChunk
 from openai import APIError, RateLimitError as OpenAIRateLimitError
+
 from loguru import logger
 
+from .key_state import KeyState
 from .models import ModelInfo
 from .exceptions import (
     AllKeysExhausted, InvalidKeyError, RateLimitError, OpenRouterError
 )
-
-
-@dataclass
-class KeyState:
-    key: str
-    exhausted: bool = False
-    invalid: bool = False
-    
-    def mask(self) -> str:
-        if len(self.key) < 12:
-            return "***"
-        return f"{self.key[:6]}...{self.key[-6:]}"
 
 
 class FreeOpenRouterClient:
@@ -37,7 +28,6 @@ class FreeOpenRouterClient:
         if not api_keys:
             raise ValueError("At least one API key must be provided")
         
-        # Validate API keys format
         for key in api_keys:
             if not self._validate_api_key(key):
                 logger.warning(f"API key {key[:10]}... might be invalid format")
@@ -56,19 +46,15 @@ class FreeOpenRouterClient:
         self._init_client()
     
     def _validate_api_key(self, key: str) -> bool:
-        """Validate OpenRouter API key format."""
         return key.startswith('sk-or-') and len(key) > 20
     
     async def __aenter__(self):
-        """Async context manager entry."""
         return self
     
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """Async context manager exit - cleanup resources."""
         await self.close()
     
     async def close(self):
-        """Close the client and cleanup resources."""
         if self._client and hasattr(self._client, 'http_client'):
             try:
                 await self._client.http_client.aclose()
@@ -227,15 +213,13 @@ class FreeOpenRouterClient:
         logger.info("All keys have been reset")
     
     async def health_check(self) -> Dict[str, bool]:
-        """Check health of all API keys."""
         results = {}
         for key_state in self._key_states:
             try:
-                # Try a minimal request to check if key works
                 temp_client = AsyncOpenAI(
                     api_key=key_state.key,
                     base_url=self.base_url,
-                    timeout=5.0,  # Short timeout for health check
+                    timeout=5.0,
                 )
                 await temp_client.models.list()
                 results[key_state.mask()] = True

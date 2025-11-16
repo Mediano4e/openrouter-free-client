@@ -199,16 +199,6 @@ logger.enable("openrouter_free")
 logger.add("debug.log", level="DEBUG")
 ```
 
-## Available Models
-
-The library includes pre-configured settings for popular models:
-
-- **OpenAI**: `gpt-4o-mini`, `gpt-3.5-turbo`
-- **Anthropic**: `claude-3-haiku`
-- **Meta**: `llama-3.2-3b-instruct`
-- **Microsoft**: `phi-3.5-mini-128k-instruct`
-- **Google**: `gemini-2.0-flash-exp`
-
 ## API Key Format
 
 OpenRouter API keys should follow the format: `sk-or-v1-...`
@@ -283,7 +273,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Support
 
-For issues and questions, please use the [GitHub Issues](https://github.com/yourusername/openrouter-free-client/issues) page.
+For issues and questions, please use the [GitHub Issues](https://github.com/Mediano4e/openrouter-free-client/issues) page.
 
 ## Disclaimer
 

@@ -217,22 +217,25 @@ class LangChainORFAdapter(BaseChatModel):
             generation_kwargs["stop"] = stop
         
         async def async_generator():
-            async for chunk in self.client.stream_chat_completion(
-                messages=openai_messages,
-                **generation_kwargs
-            ):
-                if chunk.choices and chunk.choices[0].delta.content:
-                    message_chunk = AIMessageChunk(
-                        content=chunk.choices[0].delta.content,
-                        additional_kwargs={"model": chunk.model} if chunk.model else {}
-                    )
-                    
-                    yield ChatGenerationChunk(message=message_chunk)
-                    
-                    if run_manager:
-                        run_manager.on_llm_new_token(
-                            chunk.choices[0].delta.content,
+            try:
+                async for chunk in self.client.stream_chat_completion(
+                    messages=openai_messages,
+                    **generation_kwargs
+                ):
+                    if chunk.choices and chunk.choices[0].delta.content:
+                        content = chunk.choices[0].delta.content
+                        message_chunk = AIMessageChunk(
+                            content=content,
+                            additional_kwargs={"model": chunk.model} if chunk.model else {}
                         )
+                        
+                        yield ChatGenerationChunk(message=message_chunk)
+                        
+                        if run_manager:
+                            run_manager.on_llm_new_token(content)
+            except Exception as e:
+                logger.error(f"Streaming error: {e}")
+                raise
         
         gen = async_generator()
         
@@ -242,6 +245,9 @@ class LangChainORFAdapter(BaseChatModel):
                 yield chunk
         except StopAsyncIteration:
             return
+        except Exception as e:
+            logger.error(f"Sync streaming error: {e}")
+            raise
     
     async def _astream(
         self,
@@ -260,22 +266,25 @@ class LangChainORFAdapter(BaseChatModel):
         if stop:
             generation_kwargs["stop"] = stop
         
-        async for chunk in self.client.stream_chat_completion(
-            messages=openai_messages,
-            **generation_kwargs
-        ):
-            if chunk.choices and chunk.choices[0].delta.content:
-                message_chunk = AIMessageChunk(
-                    content=chunk.choices[0].delta.content,
-                    additional_kwargs={"model": chunk.model} if chunk.model else {}
-                )
-                
-                yield ChatGenerationChunk(message=message_chunk)
-                
-                if run_manager:
-                    await run_manager.on_llm_new_token(
-                        chunk.choices[0].delta.content,
+        try:
+            async for chunk in self.client.stream_chat_completion(
+                messages=openai_messages,
+                **generation_kwargs
+            ):
+                if chunk.choices and chunk.choices[0].delta.content:
+                    content = chunk.choices[0].delta.content
+                    message_chunk = AIMessageChunk(
+                        content=content,
+                        additional_kwargs={"model": chunk.model} if chunk.model else {}
                     )
+                    
+                    yield ChatGenerationChunk(message=message_chunk)
+                    
+                    if run_manager:
+                        await run_manager.on_llm_new_token(content)
+        except Exception as e:
+            logger.error(f"Async streaming error: {e}")
+            raise
     
     @property
     def available_keys(self) -> int:

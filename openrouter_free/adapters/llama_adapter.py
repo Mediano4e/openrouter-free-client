@@ -84,6 +84,7 @@ class LlamaORFAdapter(BaseLLM):
         }
     
     def _run_sync(self, coro):
+        """Run async coroutine synchronously with proper error handling."""
         try:
             loop = asyncio.get_event_loop()
         except RuntimeError:
@@ -91,6 +92,7 @@ class LlamaORFAdapter(BaseLLM):
             asyncio.set_event_loop(loop)
         
         if loop.is_running():
+            # If we're already in an async context, use ThreadPoolExecutor
             import concurrent.futures
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 future = executor.submit(asyncio.run, coro)
@@ -128,23 +130,28 @@ class LlamaORFAdapter(BaseLLM):
         messages: Sequence[ChatMessage],
         **kwargs: Any
     ) -> ChatResponseGen:
+        """Stream chat completion with proper chunk handling."""
         openai_messages = [_message_to_dict(msg) for msg in messages]
         
         completion_kwargs = {**self._model_kwargs, **kwargs}
         
         async def async_generator():
+            content_buffer = ""
             async for chunk in self._client.stream_chat_completion(
                 messages=openai_messages,
                 **completion_kwargs
             ):
                 if chunk.choices and chunk.choices[0].delta.content:
+                    delta_content = chunk.choices[0].delta.content
+                    content_buffer += delta_content
+                    
                     yield ChatResponse(
                         message=ChatMessage(
                             role=MessageRole.ASSISTANT,
-                            content=chunk.choices[0].delta.content,
+                            content=content_buffer,
                         ),
                         raw=chunk.model_dump(),
-                        delta=chunk.choices[0].delta.content,
+                        delta=delta_content,
                     )
         
         gen = async_generator()
@@ -187,22 +194,27 @@ class LlamaORFAdapter(BaseLLM):
         messages: Sequence[ChatMessage],
         **kwargs: Any
     ) -> ChatResponseGen:
+        """Async stream chat completion with proper content accumulation."""
         openai_messages = [_message_to_dict(msg) for msg in messages]
         
         completion_kwargs = {**self._model_kwargs, **kwargs}
         
+        content_buffer = ""
         async for chunk in self._client.stream_chat_completion(
             messages=openai_messages,
             **completion_kwargs
         ):
             if chunk.choices and chunk.choices[0].delta.content:
+                delta_content = chunk.choices[0].delta.content
+                content_buffer += delta_content
+                
                 yield ChatResponse(
                     message=ChatMessage(
                         role=MessageRole.ASSISTANT,
-                        content=chunk.choices[0].delta.content,
+                        content=content_buffer,
                     ),
                     raw=chunk.model_dump(),
-                    delta=chunk.choices[0].delta.content,
+                    delta=delta_content,
                 )
     
     def complete(

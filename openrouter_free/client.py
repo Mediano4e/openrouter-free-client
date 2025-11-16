@@ -101,16 +101,35 @@ class FreeOpenRouterClient:
                     return False
     
     def add_key(self, api_key: str):
-        self._key_states.append(KeyState(key=api_key))
-        logger.info(f"Added new key {KeyState(key=api_key).mask()}")
+        """Add a new API key with validation."""
+        if not self._validate_api_key(api_key):
+            logger.warning(f"API key {api_key[:10]}... might be invalid format")
+        
+        # Check if key already exists
+        for existing_key in self._key_states:
+            if existing_key.key == api_key:
+                logger.warning(f"Key {existing_key.mask()} already exists")
+                return
+        
+        new_key_state = KeyState(key=api_key)
+        self._key_states.append(new_key_state)
+        logger.info(f"Added new key {new_key_state.mask()}")
     
     def remove_key(self, api_key: str) -> bool:
         for i, key_state in enumerate(self._key_states):
             if key_state.key == api_key:
+                if key_state.exhausted:
+                    self._exhausted_count = max(0, self._exhausted_count - 1)
+                
                 del self._key_states[i]
-                if i == self._current_key_index and self._key_states:
-                    self._current_key_index = 0
+                
+                if i <= self._current_key_index and self._key_states:
+                    self._current_key_index = max(0, self._current_key_index - 1)
                     self._init_client()
+                elif not self._key_states:
+                    self._current_key_index = 0
+                    self._client = None
+                
                 logger.info(f"Removed key {key_state.mask()}")
                 return True
         return False
@@ -215,6 +234,7 @@ class FreeOpenRouterClient:
     async def health_check(self) -> Dict[str, bool]:
         results = {}
         for key_state in self._key_states:
+            temp_client = None
             try:
                 temp_client = AsyncOpenAI(
                     api_key=key_state.key,
@@ -225,4 +245,10 @@ class FreeOpenRouterClient:
                 results[key_state.mask()] = True
             except Exception:
                 results[key_state.mask()] = False
+            finally:
+                if temp_client and hasattr(temp_client, 'http_client'):
+                    try:
+                        await temp_client.http_client.aclose()
+                    except Exception:
+                        pass
         return results

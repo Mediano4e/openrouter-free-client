@@ -29,6 +29,7 @@ from ..models import ModelInfo
 
 
 def _message_to_dict(message: BaseMessage) -> Dict[str, str]:
+    """Convert LangChain message to OpenAI format with proper error handling."""
     if isinstance(message, SystemMessage):
         role = "system"
     elif isinstance(message, HumanMessage):
@@ -44,7 +45,7 @@ def _message_to_dict(message: BaseMessage) -> Dict[str, str]:
     
     return {
         "role": role,
-        "content": message.content,
+        "content": str(message.content) if message.content is not None else "",
     }
 
 
@@ -103,6 +104,7 @@ class LangChainORFAdapter(BaseChatModel):
         }
     
     def _run_sync(self, coro):
+        """Run async coroutine synchronously with proper error handling."""
         try:
             loop = asyncio.get_event_loop()
         except RuntimeError:
@@ -110,6 +112,7 @@ class LangChainORFAdapter(BaseChatModel):
             asyncio.set_event_loop(loop)
         
         if loop.is_running():
+            # If we're already in an async context, use ThreadPoolExecutor
             import concurrent.futures
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 future = executor.submit(asyncio.run, coro)

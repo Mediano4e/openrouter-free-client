@@ -46,7 +46,9 @@ class FreeOpenRouterClient:
         self._init_client()
     
     def _validate_api_key(self, key: str) -> bool:
-        return key.startswith('sk-or-') and len(key) > 20
+        if not isinstance(key, str):
+            return False
+        return key.startswith('sk-or-') and len(key) > 20 and key.count('-') >= 3
     
     async def __aenter__(self):
         return self
@@ -85,27 +87,30 @@ class FreeOpenRouterClient:
                 logger.warning(f"Key {current_key.mask()} exhausted")
             
             if self._exhausted_count >= len(self._key_states):
+                logger.error("All API keys have been exhausted")
                 return False
             
             original_index = self._current_key_index
-            while True:
+            attempts = 0
+            max_attempts = len(self._key_states)
+            
+            while attempts < max_attempts:
                 self._current_key_index = (self._current_key_index + 1) % len(self._key_states)
                 next_key = self._key_states[self._current_key_index]
+                attempts += 1
                 
-                if not next_key.exhausted and not next_key.invalid:
+                if next_key.is_usable:
                     logger.info(f"Switched to key {next_key.mask()}")
                     self._init_client()
                     return True
-                
-                if self._current_key_index == original_index:
-                    return False
+            
+            logger.error("No available keys found during rotation")
+            return False
     
     def add_key(self, api_key: str):
-        """Add a new API key with validation."""
         if not self._validate_api_key(api_key):
             logger.warning(f"API key {api_key[:10]}... might be invalid format")
         
-        # Check if key already exists
         for existing_key in self._key_states:
             if existing_key.key == api_key:
                 logger.warning(f"Key {existing_key.mask()} already exists")
@@ -166,12 +171,18 @@ class FreeOpenRouterClient:
         messages: List[Dict[str, str]],
         **kwargs
     ) -> ChatCompletion:
+        if not messages:
+            raise ValueError("Messages list cannot be empty")
+        
         if self._exhausted_count >= len(self._key_states):
             raise AllKeysExhausted("All API keys have been exhausted")
         
         retries = 0
         while retries < self.max_retries:
             try:
+                if not self._client:
+                    raise OpenRouterError("No active client available")
+                    
                 response = await self._client.chat.completions.create(
                     model=self.model.openrouter_name,
                     messages=messages,
@@ -191,12 +202,18 @@ class FreeOpenRouterClient:
         messages: List[Dict[str, str]],
         **kwargs
     ) -> AsyncIterator[ChatCompletionChunk]:
+        if not messages:
+            raise ValueError("Messages list cannot be empty")
+            
         if self._exhausted_count >= len(self._key_states):
             raise AllKeysExhausted("All API keys have been exhausted")
         
         retries = 0
         while retries < self.max_retries:
             try:
+                if not self._client:
+                    raise OpenRouterError("No active client available")
+                    
                 stream = await self._client.chat.completions.create(
                     model=self.model.openrouter_name,
                     messages=messages,
@@ -224,8 +241,9 @@ class FreeOpenRouterClient:
         return len(self._key_states)
     
     def reset_keys(self):
+        """Reset all API keys to usable state."""
         for key_state in self._key_states:
-            key_state.exhausted = False
+            key_state.reset()
         self._exhausted_count = 0
         self._current_key_index = 0
         self._init_client()
